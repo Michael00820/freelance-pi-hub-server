@@ -1,6 +1,7 @@
 {
   "name": "freelance-pi-hub-server",
   "version": "1.0.0",
+  "engines": { "node": "20.x" },
   "type": "module",
   "main": "src/index.js",
   "scripts": {
