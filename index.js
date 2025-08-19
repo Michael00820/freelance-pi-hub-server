@@ -78,5 +78,10 @@ app.post('/jobs', requireAuth, (req, res) => {
 // Health
 app.get('/', (_req, res) => res.send('Freelance Pi Hub Backend Running...'));
 
+// Healthcheck route
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, message: "Server is running" });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('API listening on', PORT));
