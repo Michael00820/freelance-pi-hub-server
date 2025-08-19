@@ -1,40 +1,57 @@
+// index.js (root of your backend project)
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 
-dotenv.config();
 const app = express();
-app.use(cors());
 app.use(express.json());
 
-const PLATFORM_FEE_PCT = 5;   // freelancer fee (deducted on release)
-const CLIENT_FEE_PCT   = 3;   // client surcharge (added on funding)
+// allow frontend to call backend
+app.use(
+  cors({
+    origin: [
+      "https://freelance-pi-hub-client.vercel.app",
+      "http://localhost:5173",
+    ],
+    credentials: true,
+  })
+);
 
-// Health
+// health check
+app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+
+// temporary mock jobs endpoint (for testing without database)
+app.get("/api/jobs", (_req, res) => {
+  const jobs = [
+    {
+      id: "j1",
+      title: "Landing page (3 sections)",
+      description: "Simple responsive landing page in React/Vite.",
+      budget: 120,
+      currency: "PI",
+      platformFeePct: 5,
+      clientFeePct: 3,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "j2",
+      title: "Bug fix: React form validation",
+      description: "Fix form validation + unit test.",
+      budget: 60,
+      currency: "PI",
+      platformFeePct: 5,
+      clientFeePct: 3,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  res.json(jobs);
+});
+
+// simple home page
 app.get("/", (_req, res) => {
-  res.send("Freelance Pi Hub Backend Running...");
+  res.type("text").send("Freelance Pi Hub Backend Running...");
 });
 
-// Demo calc endpoints (no DB yet)
-app.post("/api/payments/quote", (req, res) => {
-  const amount = Number(req.body.amount || 0);
-  const clientFee = +(amount * CLIENT_FEE_PCT / 100).toFixed(2);
-  const platformFee = +(amount * PLATFORM_FEE_PCT / 100).toFixed(2);
-  const totalClientPays = +(amount + clientFee).toFixed(2);
-  const freelancerReceives = +(amount - platformFee).toFixed(2);
-  res.json({
-    ok: true,
-    platform_fee_pct: PLATFORM_FEE_PCT,
-    client_fee_pct: CLIENT_FEE_PCT,
-    breakdown: {
-      budget_pi: amount,
-      client_fee_pi: clientFee,
-      total_to_pay_pi: totalClientPays,
-      platform_fee_pi: platformFee,
-      to_freelancer_pi: freelancerReceives
-    }
-  });
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`API listening on :${PORT}`);
 });
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
