@@ -1,13 +1,43 @@
 // db.js
-import pg from 'pg';
-const { Pool } = pg;
+import { Sequelize } from "sequelize";
 
-const isRender = !!process.env.RENDER; // or check DATABASE_URL
-const connectionString = process.env.DATABASE_URL;
+const {
+  DATABASE_URL,
+  PGHOST,
+  PGUSER,
+  PGPASSWORD,
+  PGDATABASE,
+  PGPORT,
+  NODE_ENV,
+} = process.env;
 
-const pool = new Pool({
-  connectionString,
-  ssl: isRender ? { rejectUnauthorized: false } : false, // Render needs SSL
-});
+let sequelize;
 
-export default pool;
+if (DATABASE_URL) {
+  // Single URL (Render recommended)
+  sequelize = new Sequelize(DATABASE_URL, {
+    dialect: "postgres",
+    protocol: "postgres",
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
+    logging: false,
+  });
+} else {
+  // Individual env vars
+  sequelize = new Sequelize(PGDATABASE, PGUSER, PGPASSWORD, {
+    host: PGHOST || "localhost",
+    port: PGPORT ? Number(PGPORT) : 5432,
+    dialect: "postgres",
+    dialectOptions:
+      NODE_ENV === "production"
+        ? { ssl: { require: true, rejectUnauthorized: false } }
+        : {},
+    logging: false,
+  });
+}
+
+export default sequelize;
