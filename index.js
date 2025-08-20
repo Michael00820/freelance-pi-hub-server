@@ -3,15 +3,15 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
-
-import jobsRouter from "./routes/jobs.js";
-import authRouter from "./routes/auth.js"; // <— new
+import sequelize from "./db.js";
+import authRoutes from "./routes/auth.js";
+import jobsRouter from "./routes/jobs.js"; // keep if you already have this
 
 dotenv.config();
 
 const app = express();
 
-// CORS (allow your Vercel frontend)
+// CORS — allow your Vercel client
 const corsOrigin = process.env.FRONTEND_ORIGIN || "*";
 app.use(
   cors({
@@ -20,35 +20,30 @@ app.use(
   })
 );
 
-// Security headers
 app.use(helmet());
-
-// Parse JSON
 app.use(express.json());
 
-// Health + root
-app.get("/", (req, res) => {
-  res.json({ ok: true, service: "freelance-pi-hub-server" });
-});
+// health + root
+app.get("/", (_req, res) => res.json({ ok: true, service: "freelance-pi-hub-server" }));
+app.get("/api/health", (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+// auth
+app.use("/api/auth", authRoutes);
 
-// Routes
-app.use("/api/jobs", jobsRouter);
-app.use("/api/auth", authRouter); // <— new
+// jobs (if you have it)
+if (jobsRouter) app.use("/api/jobs", jobsRouter);
 
-// Error handler (last)
-app.use((err, req, res, next) => {
-  console.error(err);
-  res
-    .status(err.status || 500)
-    .json({ error: err.message || "Server error" });
-});
+// start (Render sets PORT)
+const PORT = process.env.PORT || 8080;
 
-// Start (Render will set PORT)
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`API listening on :${PORT}`);
-});
+// Sync models then listen
+(async () => {
+  try {
+    await sequelize.authenticate();
+    await sequelize.sync(); // creates tables if not present
+    app.listen(PORT, () => console.log(`API listening on ${PORT}`));
+  } catch (err) {
+    console.error("DB_INIT_ERROR", err);
+    process.exit(1);
+  }
+})();
