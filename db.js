@@ -1,13 +1,13 @@
 // db.js
-import pg from "pg";
-import dotenv from "dotenv";
-dotenv.config();
-
+import pg from 'pg';
 const { Pool } = pg;
 
+const isRender = !!process.env.RENDER; // or check DATABASE_URL
+const connectionString = process.env.DATABASE_URL;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false
+  connectionString,
+  ssl: isRender ? { rejectUnauthorized: false } : false, // Render needs SSL
 });
 
 export default pool;
