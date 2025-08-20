@@ -1,10 +1,17 @@
-// index.js (root of project)
+// index.js
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import dotenv from "dotenv";
+
+import jobsRouter from "./routes/jobs.js";
+import authRouter from "./routes/auth.js"; // <— new
+
+dotenv.config();
 
 const app = express();
 
-// Allow your Vercel site to call the API
+// CORS (allow your Vercel frontend)
 const corsOrigin = process.env.FRONTEND_ORIGIN || "*";
 app.use(
   cors({
@@ -13,48 +20,35 @@ app.use(
   })
 );
 
+// Security headers
+app.use(helmet());
+
+// Parse JSON
 app.use(express.json());
 
-// Basic health check (Render pings this if you set Health Check Path to /healthz)
-app.get("/healthz", (req, res) => {
-  res.json({ ok: true, message: "Server is running" });
+// Health + root
+app.get("/", (req, res) => {
+  res.json({ ok: true, service: "freelance-pi-hub-server" });
 });
 
-// Simple root
-app.get("/", (_req, res) => {
-  res.type("text/plain").send("Freelance Pi Hub Backend Running...");
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// In-memory jobs (so the frontend has something to show)
-const jobs = [
-  {
-    id: "j1",
-    title: "Landing page (3 sections)",
-    description: "Simple responsive landing page in React/Vite.",
-    budget: 120,
-    currency: "PI",
-    platformFeePct: 5,
-    clientFeePct: 3,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "j2",
-    title: "Bug fix: React form validation",
-    description: "Fix form validation + unit test.",
-    budget: 60,
-    currency: "PI",
-    platformFeePct: 5,
-    clientFeePct: 3,
-    createdAt: new Date().toISOString(),
-  },
-];
+// Routes
+app.use("/api/jobs", jobsRouter);
+app.use("/api/auth", authRouter); // <— new
 
-app.get("/api/jobs", (_req, res) => {
-  res.json({ jobs });
+// Error handler (last)
+app.use((err, req, res, next) => {
+  console.error(err);
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || "Server error" });
 });
 
-// Start server (Render injects PORT)
+// Start (Render will set PORT)
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server listening on ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`API listening on :${PORT}`);
 });
