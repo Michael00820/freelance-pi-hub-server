@@ -1,55 +1,10 @@
+// index.js (root of project)
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
-import jobsRouter from "./routes/jobs.js";
 
 const app = express();
 
-// CORS (allow your Vercel frontend)
-const corsOrigin =
-  process.env.FRONTEND_ORIGIN ||
-  "https://freelance-pi-hub-client.vercel.app";
-
-app.use(
-  cors({
-    origin: corsOrigin,
-    credentials: false,
-  })
-);
-
-// Security headers
-app.use(helmet());
-
-// Body parser
-app.use(express.json());
-
-// Health check (Render pings this)
-app.get("/healthz", (req, res) => {
-  res.json({ ok: true, message: "Server is running" });
-});
-
-// API routes
-app.use("/api/jobs", jobsRouter);
-
-// Root
-app.get("/", (req, res) => {
-  res.send("Freelance Pi Hub Backend running 🚀");
-});
-
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});// index.js
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import morgan from "morgan";
-import jobsRouter from "./routes/jobs.js";
-
-const app = express();
-
-// CORS (allow your Vercel frontend)
+// Allow your Vercel site to call the API
 const corsOrigin = process.env.FRONTEND_ORIGIN || "*";
 app.use(
   cors({
@@ -58,25 +13,48 @@ app.use(
   })
 );
 
-app.use(helmet());
 app.use(express.json());
-app.use(morgan("dev"));
 
-// Healthcheck
-app.get("/", (_req, res) => {
+// Basic health check (Render pings this if you set Health Check Path to /healthz)
+app.get("/healthz", (req, res) => {
   res.json({ ok: true, message: "Server is running" });
 });
 
-// Jobs API (now backed by Postgres)
-app.use("/api/jobs", jobsRouter);
-
-// 404 fallback
-app.use((_req, res) => {
-  res.status(404).json({ ok: false, error: "Not found" });
+// Simple root
+app.get("/", (_req, res) => {
+  res.type("text/plain").send("Freelance Pi Hub Backend Running...");
 });
 
-// Start
+// In-memory jobs (so the frontend has something to show)
+const jobs = [
+  {
+    id: "j1",
+    title: "Landing page (3 sections)",
+    description: "Simple responsive landing page in React/Vite.",
+    budget: 120,
+    currency: "PI",
+    platformFeePct: 5,
+    clientFeePct: 3,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "j2",
+    title: "Bug fix: React form validation",
+    description: "Fix form validation + unit test.",
+    budget: 60,
+    currency: "PI",
+    platformFeePct: 5,
+    clientFeePct: 3,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+app.get("/api/jobs", (_req, res) => {
+  res.json({ jobs });
+});
+
+// Start server (Render injects PORT)
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Freelance Pi Hub Backend listening on :${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server listening on ${PORT}`);
 });
