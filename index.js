@@ -15,8 +15,8 @@ const Job = require('./models/Job');
 sequelize.sync({ alter: true })  // alter updates schema without wiping data
   .then(() => console.log("✅ Database synced"))
   .catch(err => console.error("❌ Database sync error:", err));
-dotenv.config();
 
+dotenv.config();
 const app = express();
 
 // CORS — allow your Vercel client
