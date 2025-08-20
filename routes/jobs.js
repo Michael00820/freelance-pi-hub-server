@@ -1,90 +1,37 @@
 // routes/jobs.js
-import express from "express";
-import { query } from "../db.js";
+import { Router } from "express";
+import pool from "../db.js";
 
-const router = express.Router();
+const router = Router();
 
-/**
- * GET /api/jobs
- * Returns the latest jobs from Postgres (schema: fpi)
- */
-router.get("/", async (_req, res) => {
+// GET /api/jobs
+router.get("/", async (req, res, next) => {
   try {
-    const sql = `
-      SELECT
-        id,
-        title,
-        description,
-        budget,
-        currency,
-        platform_fee_pct AS "platformFeePct",
-        client_fee_pct   AS "clientFeePct",
-        created_at       AS "createdAt"
-      FROM fpi.jobs
-      ORDER BY created_at DESC
-      LIMIT 100;
-    `;
-    const { rows } = await query(sql);
-    res.json({ ok: true, jobs: rows });
+    const { rows } = await pool.query(
+      "SELECT id, title, company, location, description, created_at FROM fpi.jobs ORDER BY created_at DESC"
+    );
+    res.json(rows);
   } catch (err) {
-    console.error("GET /api/jobs error:", err);
-    res.status(500).json({ ok: false, error: "Failed to load jobs." });
+    next(err);
   }
 });
 
-/**
- * POST /api/jobs
- * Body: { title, description, budget, currency, platformFeePct, clientFeePct }
- * Inserts a new job row and returns it.
- */
-router.post("/", async (req, res) => {
+// POST /api/jobs
+router.post("/", async (req, res, next) => {
   try {
-    const {
-      title,
-      description,
-      budget,
-      currency = "PI",
-      platformFeePct = 5,
-      clientFeePct = 3,
-    } = req.body || {};
-
-    // Basic validation
-    if (!title || !description || budget == null) {
-      return res.status(400).json({
-        ok: false,
-        error: "title, description and budget are required",
-      });
+    const { title, company, location, description } = req.body;
+    if (!title || !company) {
+      return res.status(400).json({ error: "title and company are required" });
     }
-
-    const sql = `
-      INSERT INTO fpi.jobs (
-        title, description, budget, currency, platform_fee_pct, client_fee_pct
-      )
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING
-        id,
-        title,
-        description,
-        budget,
-        currency,
-        platform_fee_pct AS "platformFeePct",
-        client_fee_pct   AS "clientFeePct",
-        created_at       AS "createdAt";
-    `;
-    const params = [
-      title,
-      description,
-      Number(budget),
-      currency,
-      Number(platformFeePct),
-      Number(clientFeePct),
-    ];
-
-    const { rows } = await query(sql, params);
-    res.status(201).json({ ok: true, job: rows[0] });
+    const { rows } = await pool.query(
+      `INSERT INTO fpi.jobs (title, company, location, description)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, title, company, location, description, created_at`,
+      [title, company, location ?? null, description ?? null]
+    );
+    res.status(201).json(rows[0]);
   } catch (err) {
-    console.error("POST /api/jobs error:", err);
-    res.status(500).json({ ok: false, error: "Failed to create job." });
+    next(err);
   }
 });
 
