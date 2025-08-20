@@ -7,6 +7,14 @@ import sequelize from "./db.js";
 import authRoutes from "./routes/auth.js";
 import jobsRouter from "./routes/jobs.js"; // keep if you already have this
 
+const sequelize = require('./models/index');
+const User = require('./models/User');
+const Job = require('./models/Job');
+
+// Test & sync DB
+sequelize.sync({ alter: true })  // alter updates schema without wiping data
+  .then(() => console.log("✅ Database synced"))
+  .catch(err => console.error("❌ Database sync error:", err));
 dotenv.config();
 
 const app = express();
