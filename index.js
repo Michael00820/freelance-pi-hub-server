@@ -1,4 +1,46 @@
-// index.js
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import jobsRouter from "./routes/jobs.js";
+
+const app = express();
+
+// CORS (allow your Vercel frontend)
+const corsOrigin =
+  process.env.FRONTEND_ORIGIN ||
+  "https://freelance-pi-hub-client.vercel.app";
+
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: false,
+  })
+);
+
+// Security headers
+app.use(helmet());
+
+// Body parser
+app.use(express.json());
+
+// Health check (Render pings this)
+app.get("/healthz", (req, res) => {
+  res.json({ ok: true, message: "Server is running" });
+});
+
+// API routes
+app.use("/api/jobs", jobsRouter);
+
+// Root
+app.get("/", (req, res) => {
+  res.send("Freelance Pi Hub Backend running 🚀");
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});// index.js
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
