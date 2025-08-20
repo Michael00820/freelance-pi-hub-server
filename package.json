@@ -2,40 +2,22 @@
   "name": "freelance-pi-hub-server",
   "version": "1.0.0",
   "type": "module",
+  "main": "index.js",
   "engines": {
     "node": "20.x"
   },
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2"
-  }
-}{
-  "name": "freelance-pi-hub-server",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {
-<<<<<<< HEAD
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2"
-=======
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
->>>>>>> origin/main
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }
