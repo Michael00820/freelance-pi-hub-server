@@ -1,46 +1,73 @@
-// index.js
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import dotenv from "dotenv";
-import { sequelize } from "./models/index.js";
-import piRoutes from "./routes/pi.js";
+// index.js (ESM)
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 
-dotenv.config();
+// ---- Sequelize connection ----
+import sequelize from './db.js';          // your Sequelize instance (exports new Sequelize(...))
 
+// ---- Routers (keep these if you have them) ----
+import authRoutes from './routes/auth.js';
+import jobsRouter from './routes/jobs.js';
+
+// ----- App setup -----
 const app = express();
-const PORT = Number(process.env.PORT || 10000);
-const corsOrigin = process.env.FRONTEND_ORIGIN || "*";
+
+// Allow your Vercel frontend in prod; allow all in dev if none provided
+const corsOrigin =
+  process.env.FRONTEND_ORIGIN ||
+  process.env.VERCEL_URL?.startsWith('http')
+    ? process.env.VERCEL_URL
+    : '*';
 
 app.use(
   cors({
     origin: corsOrigin,
-    credentials: false
+    credentials: false,
   })
 );
 app.use(helmet());
 app.use(express.json());
 
-// health + root
-app.get("/", (_req, res) => {
-  res.json({ ok: true, service: "freelance-pi-hub-server" });
+// Health & root
+app.get('/', (_req, res) =>
+  res.json({ ok: true, service: 'freelance-pi-hub-server' })
+);
+app.get('/api/health', async (_req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({ ok: true, db: 'up' });
+  } catch (e) {
+    res.status(500).json({ ok: false, db: 'down', error: e?.message });
+  }
 });
 
-app.use("/api/pi", piRoutes);
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/jobs', jobsRouter);
+
+// ---- Start server after DB sync ----
+const PORT = Number(process.env.PORT || 10000);
 
 async function start() {
   try {
-    await sequelize.authenticate();
-    await sequelize.sync({ alter: true });
-    console.log("✅ Database synced");
+    // adjust sync options as you prefer:
+    await sequelize.sync(); // or { alter: true } during development
+    console.log('✅ Database synced');
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log("==> Your service is live");
     });
   } catch (err) {
-    console.error("DB error:", err);
+    console.error('❌ Failed to start server:', err);
     process.exit(1);
   }
 }
 
 start();
+
+// Guard against unhandled promise rejections
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION', reason);
+});
