@@ -1,17 +1,42 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('./index');
-const User = require('./User');
+// models/Job.js
+import { DataTypes } from "sequelize";
 
-const Job = sequelize.define('Job', {
-  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  title: { type: DataTypes.STRING, allowNull: false },
-  description: { type: DataTypes.TEXT, allowNull: false },
-  budget: { type: DataTypes.FLOAT, allowNull: false },
-}, {
-  timestamps: true
-});
+export default function createJob(sequelize) {
+  const Job = sequelize.define(
+    "Job",
+    {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+      },
+      title: {
+        type: DataTypes.STRING(160),
+        allowNull: false,
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      budget: {
+        type: DataTypes.DECIMAL(12, 2),
+        allowNull: true,
+      },
+      status: {
+        type: DataTypes.ENUM("open", "assigned", "completed"),
+        defaultValue: "open",
+      },
+      userId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+      },
+    },
+    {
+      tableName: "jobs",
+      timestamps: true,
+      indexes: [{ fields: ["userId"] }, { fields: ["status"] }],
+    }
+  );
 
-Job.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Job, { foreignKey: 'userId' });
-
-module.exports = Job;
+  return Job;
+}
