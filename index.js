@@ -3,47 +3,44 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
-import sequelize from "./db.js";
-import authRoutes from "./routes/auth.js";
-import jobsRouter from "./routes/jobs.js"; // keep if you already have this
+import { sequelize } from "./models/index.js";
+import piRoutes from "./routes/pi.js";
 
 dotenv.config();
 
 const app = express();
-
-// CORS — allow your Vercel client
+const PORT = Number(process.env.PORT || 10000);
 const corsOrigin = process.env.FRONTEND_ORIGIN || "*";
+
 app.use(
   cors({
     origin: corsOrigin,
-    credentials: false,
+    credentials: false
   })
 );
-
 app.use(helmet());
 app.use(express.json());
 
 // health + root
-app.get("/", (_req, res) => res.json({ ok: true, service: "freelance-pi-hub-server" }));
-app.get("/api/health", (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
+app.get("/", (_req, res) => {
+  res.json({ ok: true, service: "freelance-pi-hub-server" });
+});
 
-// auth
-app.use("/api/auth", authRoutes);
+app.use("/api/pi", piRoutes);
 
-// jobs (if you have it)
-if (jobsRouter) app.use("/api/jobs", jobsRouter);
-
-// start (Render sets PORT)
-const PORT = process.env.PORT || 8080;
-
-// Sync models then listen
-(async () => {
+async function start() {
   try {
     await sequelize.authenticate();
-    await sequelize.sync(); // creates tables if not present
-    app.listen(PORT, () => console.log(`API listening on ${PORT}`));
+    await sequelize.sync({ alter: true });
+    console.log("✅ Database synced");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log("==> Your service is live");
+    });
   } catch (err) {
-    console.error("DB_INIT_ERROR", err);
+    console.error("DB error:", err);
     process.exit(1);
   }
-})();
+}
+
+start();
