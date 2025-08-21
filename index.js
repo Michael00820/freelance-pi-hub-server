@@ -1,33 +1,17 @@
-process.on("uncaughtException", (err) => {
-  console.error("❌ Uncaught Exception:", err);
-  process.exit(1);
-});
-
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
-  process.exit(1);
-});// index.js
+// index.js
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
-import sequelize from "./db.js";
+import sequelize from "./models/index.js";   // Sequelize instance
 import authRoutes from "./routes/auth.js";
-import jobsRouter from "./routes/jobs.js"; // keep if you already have this
-
-const sequelize = require('./models/index');
-const User = require('./models/User');
-const Job = require('./models/Job');
-
-// Test & sync DB
-sequelize.sync({ alter: true })  // alter updates schema without wiping data
-  .then(() => console.log("✅ Database synced"))
-  .catch(err => console.error("❌ Database sync error:", err));
+import jobsRouter from "./routes/jobs.js";
 
 dotenv.config();
+
 const app = express();
 
-// CORS — allow your Vercel client
+// CORS – allow your frontend
 const corsOrigin = process.env.FRONTEND_ORIGIN || "*";
 app.use(
   cors({
@@ -40,26 +24,37 @@ app.use(helmet());
 app.use(express.json());
 
 // health + root
-app.get("/", (_req, res) => res.json({ ok: true, service: "freelance-pi-hub-server" }));
-app.get("/api/health", (_req, res) => res.json({ ok: true, uptime: process.uptime() }));
+app.get("/", (_req, res) =>
+  res.json({ ok: true, service: "freelance-pi-hub-server" })
+);
+app.get("/api/health", (_req, res) =>
+  res.json({ ok: true, status: "healthy" })
+);
 
-// auth
+// routes
 app.use("/api/auth", authRoutes);
+app.use("/api/jobs", jobsRouter);
 
-// jobs (if you have it)
-if (jobsRouter) app.use("/api/jobs", jobsRouter);
+// Sequelize sync
+sequelize
+  .sync({ alter: true }) // alter = safe schema update
+  .then(() => {
+    console.log("✅ Database synced");
 
-// start (Render sets PORT)
-const PORT = process.env.PORT || 8080;
+    const PORT = process.env.PORT || 10000;
+    app.listen(PORT, () =>
+      console.log(`🚀 Server running on port ${PORT}`)
+    );
+  })
+  .catch((err) => {
+    console.error("❌ Database sync error:", err);
+    process.exit(1); // crash if DB fails
+  });
 
-// Sync models then listen
-(async () => {
-  try {
-    await sequelize.authenticate();
-    await sequelize.sync(); // creates tables if not present
-    app.listen(PORT, () => console.log(`API listening on ${PORT}`));
-  } catch (err) {
-    console.error("DB_INIT_ERROR", err);
-    process.exit(1);
-  }
-})();
+// Global error logging
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection:", reason);
+});
